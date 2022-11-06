@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "sdn"
+version = "0.1.0"
+description = ""
+authors = [
+	"MegaRedHand <tgruner@fi.uba.ar",
+	"matias-gonz <maigonzalez@fi.uba.ar>",
+	"sjdalessandro <sdalessandro@fi.uba.ar>",
+	"facundopareja <fpareja@fi.uba.ar>",
+	"sotlucas <lsotelo@fi.uba.ar>",
+]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+black = "^22.8.0"
+isort = "^5.10.1"
+flake8 = "^5.0.4"
+pytest = "^7.1.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
