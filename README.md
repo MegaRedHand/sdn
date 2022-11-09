@@ -36,3 +36,22 @@ Para correr el formatter o linter manualmente se puede usar el siguiente comando
 $ make lint
 ```
 
+## Ejecutar test
+
+Comenzar lanzando el modulo firewall de Pox
+
+```
+./pox.py firewall
+```
+
+Lanzar Mininet con controlador remoto
+
+```
+sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633
+```
+
+O tambien se puede ejecutar un test (pingall) con 
+
+```
+sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633 --test pingall
+```
