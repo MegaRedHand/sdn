@@ -4,8 +4,9 @@ import pox.openflow.libopenflow_01 as of
 from pox.lib.revent import *
 from pox.lib.revent.revent import EventMixin
 from pox.lib.util import dpidToStr, dpid_to_str
-from pox.lib.addresses import EthAddr
+from pox.lib.addresses import EthAddr, IPAddr
 from collections import namedtuple
+import pox.lib.packet as pkt
 import os
 
 # Add your imports here ...
@@ -18,28 +19,52 @@ class Firewall(EventMixin):
         self.listenTo(core.openflow)
         log.info("Enabling Firewall Module")
 
+    # Forwards packets headed to dst_ip to the correct switch output_port
+    def establish_flow_to_hosts(self,event,output_port,dst_ip):
+        event.connection.send(of.ofp_flow_mod(action=of.ofp_action_output(port=output_port),
+                                              priority=1,
+                                              match=of.ofp_match(dl_type=0x800,nw_dst=dst_ip)))
+        event.connection.send(of.ofp_flow_mod(action=of.ofp_action_output(port=output_port),
+                                              priority=1,
+                                              match=of.ofp_match(dl_type=0x806,nw_dst=dst_ip)))
+    def establish_flow_to_switch(self, event, output_port):
+        event.connection.send(of.ofp_flow_mod(action=of.ofp_action_output(port=output_port),
+                                              priority=1,
+                                              match=of.ofp_match(dl_type=0x800)))
+        event.connection.send(of.ofp_flow_mod(action=of.ofp_action_output(port=output_port),
+                                              priority=1,
+                                              match=of.ofp_match(dl_type=0x806)))
+
+    #only works for 2 switches so far, shouldnt be too hard to adapt to work recursively
     def _handle_ConnectionUp(self, event):
         print("Conexion establecida con el switch %s" % event.dpid)
-        event.connection.send(of.ofp_flow_mod(action=of.ofp_action_output(port=0),
-                                             priority = 1,
-                                             match=of.ofp_match(dl_type=0x800)))
         # TODO rules should be parsed from a config file
         # TODO last rule
         #switch 1 implements the firewall
         if (event.dpid==1):
-            # discards packets with destination port 80
+            print("switch configurado")
+            #basic rules to make network effective
+            self.establish_flow_to_hosts(event, 1, "10.0.0.1")
+            self.establish_flow_to_hosts(event, 2, "10.0.0.2")
+            self.establish_flow_to_switch(event, 3)
+            #TODO these rules should be handled in parser
             event.connection.send(of.ofp_flow_mod(action=(),
                                                 priority = 3,
                                                 match=of.ofp_match(dl_type=0x800,
                                                                 tp_dst=80,
                                                                 nw_proto=17 or 6)))
-            # discards packets using UDP from host 1 with destination port 5001
             event.connection.send(of.ofp_flow_mod(action=(),
                                                  priority = 2,
                                              match=of.ofp_match(dl_type=0x800,
                                                                 tp_dst=5001,
                                                                 nw_src="10.0.0.1",
                                                                 nw_proto=17)))
+        if (event.dpid==2):
+            self.establish_flow_to_hosts(event, 2, "10.0.0.3")
+            self.establish_flow_to_hosts(event, 3, "10.0.0.4")
+            self.establish_flow_to_switch(event, 1)
+        #else:
+
         log.info("Connection UP")
 
     def _handle_ConnectionDown(self, event):
