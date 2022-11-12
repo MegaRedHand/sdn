@@ -1,0 +1,7 @@
+# Bloquear trafico entre dos hosts 
+BLOCK_TRAFFIC	3	2
+# Bloquear trafico con cierto puerto de destino
+BLOCK_PORT	80
+# Bloquear trafico de cierto puerto, host y protocolo
+BLOCK_PORT_HOST_PROTOCOL	5001	1	17
+

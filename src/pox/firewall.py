@@ -13,13 +13,14 @@ import os
 log = core.getLogger()
 
 # Add your global variables here ...
+
 class Firewall(EventMixin):
     def __init__(self):
         super().__init__()
         self.listenTo(core.openflow)
         log.info("Enabling Firewall Module")
 
-    # Forwards packets headed to dst_ip to the correct switch output_port
+    # forwards packets headed to dst_ip to the correct switch output_port
     def establish_flow_to_hosts(self,event,output_port,dst_ip):
         event.connection.send(of.ofp_flow_mod(action=of.ofp_action_output(port=output_port),
                                               priority=1,
@@ -35,36 +36,84 @@ class Firewall(EventMixin):
                                               priority=1,
                                               match=of.ofp_match(dl_type=0x806)))
 
-    #only works for 2 switches so far, shouldnt be too hard to adapt to work recursively
+    def block_port_host_protocol(self, event, port, host, protocol):
+        ip_host = self.get_ip_for_host(host)
+        event.connection.send(of.ofp_flow_mod(action=(),
+                                              priority=2,
+                                              match=of.ofp_match(dl_type=0x800,
+                                                                 tp_dst=port,
+                                                                 nw_src=ip_host,
+                                                                 nw_proto=protocol)))
+
+    def block_traffic_hosts(self,event,host1,host2):
+        ip_host1 = self.get_ip_for_host(host1)
+        ip_host2 = self.get_ip_for_host(host2)
+        event.connection.send(of.ofp_flow_mod(action=(),
+                                              priority=2,
+                                              match=of.ofp_match(dl_type=0x800,
+                                                                 nw_src=ip_host1,
+                                                                 nw_dst=ip_host2)))
+        event.connection.send(of.ofp_flow_mod(action=(),
+                                              priority=2,
+                                              match=of.ofp_match(dl_type=0x800,
+                                                                 nw_src=ip_host2,
+                                                                 nw_dst=ip_host1)))
+    def get_ip_for_host(self, host):
+        return "10.0.0."+host
+    def block_port(self,event,port):
+        event.connection.send(of.ofp_flow_mod(action=(),
+                                              priority=2,
+                                              match=of.ofp_match(dl_type=0x800,
+                                                                 tp_dst=port,
+                                                                 nw_proto=17)))
+        event.connection.send(of.ofp_flow_mod(action=(),
+                                              priority=2,
+                                              match=of.ofp_match(dl_type=0x800,
+                                                                 tp_dst=port,
+                                                                 nw_proto=6)))
+    def parse_rules(self,event):
+        f = open("rules.txt", "r")
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            regla = line.split()
+            if len(regla) <= 0:
+                break
+            if regla[0] == "BLOCK_TRAFFIC":
+                self.block_traffic_hosts(event,regla[1],regla[2])
+            elif regla[0] == "BLOCK_PORT":
+                self.block_port(event, int(regla[1]))
+            elif regla[0] == "BLOCK_PORT_HOST_PROTOCOL":
+                self.block_port_host_protocol(event, int(regla[1]),
+                                regla[2],
+                                int(regla[3]))
+            else:
+                continue
+
+
+
     def _handle_ConnectionUp(self, event):
-        print("Conexion establecida con el switch %s" % event.dpid)
-        # TODO rules should be parsed from a config file
-        # TODO last rule
+        print("Connection established with switch %s" % event.dpid)
         #switch 1 implements the firewall
         if (event.dpid==1):
-            print("switch configurado")
             #basic rules to make network effective
             self.establish_flow_to_hosts(event, 1, "10.0.0.1")
             self.establish_flow_to_hosts(event, 2, "10.0.0.2")
             self.establish_flow_to_switch(event, 3)
-            #TODO these rules should be handled in parser
-            event.connection.send(of.ofp_flow_mod(action=(),
-                                                priority = 3,
-                                                match=of.ofp_match(dl_type=0x800,
-                                                                tp_dst=80,
-                                                                nw_proto=17 or 6)))
-            event.connection.send(of.ofp_flow_mod(action=(),
-                                                 priority = 2,
-                                             match=of.ofp_match(dl_type=0x800,
-                                                                tp_dst=5001,
-                                                                nw_src="10.0.0.1",
-                                                                nw_proto=17)))
+            #parses rules.txt to get rules
+            self.parse_rules(event)
+        #assuming switch 2 is the other end of the network
         if (event.dpid==2):
             self.establish_flow_to_hosts(event, 2, "10.0.0.3")
             self.establish_flow_to_hosts(event, 3, "10.0.0.4")
             self.establish_flow_to_switch(event, 1)
-        #else:
-
+        # port 1 -> left switch, port 2 -> right switch
+        #TODO add support for more switches
+        #self.establish_flow_to_hosts(event, 1, "10.0.0.1")
+        #self.establish_flow_to_hosts(event, 1, "10.0.0.2")
+        #self.establish_flow_to_hosts(event, 2, "10.0.0.3")
+        #self.establish_flow_to_hosts(event, 2, "10.0.0.4")
         log.info("Connection UP")
 
     def _handle_ConnectionDown(self, event):
