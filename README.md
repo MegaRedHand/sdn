@@ -55,3 +55,29 @@ O tambien se puede ejecutar un test (pingall) con
 ```
 sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633 --test pingall
 ```
+
+## Configuracion de reglas
+
+El archivo *reglas.txt* *(src/pox)* permite rapida configuracion de reglas
+
+Las posibilidades son:
+
+```
+BLOCK_PORT port_number
+```
+
+para blockear cualquier paquete dirigidos al puerto port_number
+
+```
+BLOCK_TRAFFIC host1_number host2_number
+```
+
+para blockear todo el trafico entre 2 hosts de direcciones 10.0.0.host1_number
+y 10.0.0.host2_number.
+
+```
+BLOCK_PORT_HOST_PROTOCOL port_number host_number protocol_number
+```
+
+para bloquear los paquetes provenientes del host 10.0.0.host_number con protocolo
+protocol_number (por ejemplo 17 para TCP y 6 para UDP) y dirigidos al puerto port_number.
