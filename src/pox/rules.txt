@@ -1,7 +1,10 @@
-# Bloquear trafico entre dos hosts 
-BLOCK_TRAFFIC	3	2
+# Archivo de reglas
+
+# Bloquear trafico entre dos hosts
+BLOCK_TRAFFIC	10.0.0.3	10.0.0.2
+
 # Bloquear trafico con cierto puerto de destino
 BLOCK_PORT	80
-# Bloquear trafico de cierto puerto, host y protocolo
-BLOCK_PORT_HOST_PROTOCOL	5001	1	17
 
+# Bloquear trafico con cierto puerto destino, host de origen y protocolo
+BLOCK_PORT_HOST_PROTOCOL	5001	10.0.0.1	UDP

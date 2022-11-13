@@ -40,44 +40,51 @@ $ make lint
 
 Comenzar lanzando el modulo firewall de Pox
 
-```
-./pox.py firewall
+```bash
+$ src/pox/pox.py forwarding.l2_learning firewall
 ```
 
 Lanzar Mininet con controlador remoto
 
+```bash
+$ sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633
 ```
-sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633
-```
+
+Puede especificarse el número de switches de la topología luego del nombre, separado por una coma.
+Por ejemplo, para 5 switches: `--topo xwing,5`
 
 O tambien se puede ejecutar un test (pingall) con 
 
-```
-sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633 --test pingall
+```bash
+$ sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633 --test pingall
 ```
 
 ## Configuracion de reglas
 
-El archivo *reglas.txt* *(src/pox)* permite rapida configuracion de reglas
+El firewall implementado permite una rápida configuración de reglas mediante la edición del archivo `src/pox/rules.txt`.
+Alternativamente, puede especificarse otro archivo del cual tomar las reglas a través del parámetro `--rules-file`:
 
-Las posibilidades son:
-
-```
-BLOCK_PORT port_number
-```
-
-para blockear cualquier paquete dirigidos al puerto port_number
-
-```
-BLOCK_TRAFFIC host1_number host2_number
+```bash
+$ src/pox/pox.py forwarding.l2_learning firewall --rules-files=path/al/archivo
 ```
 
-para blockear todo el trafico entre 2 hosts de direcciones 10.0.0.host1_number
-y 10.0.0.host2_number.
+Las reglas disponibles son:
+
+- Bloquear paquetes con un puerto destino de `port`
 
 ```
-BLOCK_PORT_HOST_PROTOCOL port_number host_number protocol_number
+BLOCK_PORT port
 ```
 
-para bloquear los paquetes provenientes del host 10.0.0.host_number con protocolo
-protocol_number (por ejemplo 17 para TCP y 6 para UDP) y dirigidos al puerto port_number.
+- Bloquear todo el tráfico entre dos hosts (especificándolos con su dirección IP)
+
+```
+BLOCK_TRAFFIC ip_hos1 ip_host2
+```
+
+- Bloquear paquetes provenientes del host con ip `ip_host`,
+de protocolo de transporte `protocol`, y puerto destino `port`
+
+```
+BLOCK_PORT_HOST_PROTOCOL port ip_host protocol
+```
