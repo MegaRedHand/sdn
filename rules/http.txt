@@ -1,0 +1,4 @@
+# Archivo de reglas
+
+# Bloquear trafico con cierto puerto de destino
+BLOCK_PORT	80

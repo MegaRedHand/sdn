@@ -1,0 +1,4 @@
+# Archivo de reglas
+
+# Bloquear trafico con cierto puerto destino, host de origen y protocolo
+BLOCK_PORT_HOST_PROTOCOL	5001	10.0.0.1	UDP
