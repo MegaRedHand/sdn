@@ -19,6 +19,7 @@ class Firewall(EventMixin):
         log.info("Enabling Firewall Module")
         self.rules = self.parse_rules()
         self.dpid = -1
+        self.mac_to_ports = {}
 
     def parse_rules(self):
         if not RULES_PATH.exists():
@@ -53,45 +54,6 @@ class Firewall(EventMixin):
                 rules.append((enforcer, argv[:argc]))
         return rules
 
-    # forwards packets headed to dst_ip to the correct switch output_port
-    # def establish_flow_to_hosts(self, connection, output_port, dst_ip):
-    #     connection.send(
-    #         of.ofp_flow_mod(
-    #             action=of.ofp_action_output(port=output_port),
-    #             priority=0,
-    #             match=of.ofp_match(
-    #                 dl_type=pkt.ethernet.IP_TYPE,
-    #                 nw_dst=dst_ip
-    #             ),
-    #         )
-    #     )
-    #     connection.send(
-    #         of.ofp_flow_mod(
-    #             action=of.ofp_action_output(port=output_port),
-    #             priority=0,
-    #             match=of.ofp_match(
-    #                 dl_type=pkt.ethernet.ARP_TYPE,
-    #                 nw_dst=dst_ip
-    #             ),
-    #         )
-    #     )
-    #
-    # def establish_flow_to_switch(self, connection, output_port):
-    #     connection.send(
-    #         of.ofp_flow_mod(
-    #             action=of.ofp_action_output(port=output_port),
-    #             priority=0,
-    #             match=of.ofp_match(dl_type=pkt.ethernet.IP_TYPE),
-    #         )
-    #     )
-    #     connection.send(
-    #         of.ofp_flow_mod(
-    #             action=of.ofp_action_output(port=output_port),
-    #             priority=0,
-    #             match=of.ofp_match(dl_type=pkt.ethernet.ARP_TYPE),
-    #         )
-    #     )
-
     def block_port_host_protocol(self, connection, port, ip_host, protocol):
         log.info(
             f"Blocking packets with: port {port}, "
@@ -110,7 +72,7 @@ class Firewall(EventMixin):
         connection.send(
             of.ofp_flow_mod(
                 action=(),
-                priority=0,
+                priority=1,
                 match=of.ofp_match(
                     dl_type=pkt.ethernet.IP_TYPE,
                     tp_dst=int(port),
@@ -125,7 +87,7 @@ class Firewall(EventMixin):
         connection.send(
             of.ofp_flow_mod(
                 action=(),
-                priority=0,
+                priority=1,
                 match=of.ofp_match(
                     dl_type=pkt.ethernet.IP_TYPE,
                     nw_src=ip_host1,
@@ -136,7 +98,7 @@ class Firewall(EventMixin):
         connection.send(
             of.ofp_flow_mod(
                 action=(),
-                priority=0,
+                priority=1,
                 match=of.ofp_match(
                     dl_type=pkt.ethernet.IP_TYPE,
                     nw_src=ip_host2,
@@ -150,7 +112,7 @@ class Firewall(EventMixin):
         connection.send(
             of.ofp_flow_mod(
                 action=(),
-                priority=0,
+                priority=1,
                 match=of.ofp_match(
                     dl_type=pkt.ethernet.IP_TYPE,
                     tp_dst=int(port),
@@ -161,7 +123,7 @@ class Firewall(EventMixin):
         connection.send(
             of.ofp_flow_mod(
                 action=(),
-                priority=0,
+                priority=1,
                 match=of.ofp_match(
                     dl_type=pkt.ethernet.IP_TYPE,
                     tp_dst=int(port),
@@ -207,8 +169,38 @@ class Firewall(EventMixin):
         pass
 
     def _handle_PacketIn(self, event):
-        # log.info("PacketIn")
-        pass
+        log.info("Received unmatched packet")
+
+        mac_to_port = self.mac_to_ports.get(event.dpid, {})
+        mac_to_port[event.parsed.src] = event.port
+
+        if event.parsed.dst in mac_to_port:
+            port = mac_to_port[event.parsed.dst]
+            if port == event.port:
+                actions = tuple()  # drop it!
+            else:
+                actions = (of.ofp_action_output(port=port),)
+            event.connection.send(
+                of.ofp_flow_mod(
+                    actions=actions,
+                    priority=0,
+                    match=of.ofp_match.from_packet(event.ofp),
+                    idle_timeout=10,
+                    data=event.ofp,
+                )
+            )
+        else:
+            event.connection.send(
+                of.ofp_packet_out(
+                    action=of.ofp_action_output(
+                        port=of.ofp_port_rev_map["OFPP_FLOOD"]
+                    ),
+                    data=event.ofp,
+                    in_port=event.port,
+                )
+            )
+
+        self.mac_to_ports[event.dpid] = mac_to_port
 
     def _handle_BarrierIn(self, event):
         # log.info("BarrierIn")
