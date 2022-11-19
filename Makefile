@@ -3,23 +3,21 @@ BLACK=$(POETRY) run black
 ISORT=$(POETRY) run isort
 FLAKE8=$(POETRY) run flake8
 PYTEST=$(POETRY) run pytest
-PACKAGE=src
+PACKAGE=src/topo.py src/pox/firewall.py
 TESTS=tests
 
 install:
 	$(POETRY) install
 	$(POETRY_EXPORT)
-	git submodule update --init --recursive
 
 fmt:
-	$(ISORT) ./${PACKAGE}
-	$(BLACK) ./${PACKAGE} --line-length 79
+	$(ISORT) ${PACKAGE}
+	$(BLACK) ${PACKAGE} --line-length 79
 
 lint: fmt
-	$(FLAKE8) ./${PACKAGE}
+	$(FLAKE8) ${PACKAGE}
 
 test:
-	$(PYTEST) ./${TESTS}
+	$(PYTEST) ${TESTS}
 
 all: lint test
-

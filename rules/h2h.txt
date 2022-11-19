@@ -1,0 +1,4 @@
+# Archivo de reglas
+
+# Bloquear trafico entre dos hosts
+BLOCK_TRAFFIC	10.0.0.3	10.0.0.2
