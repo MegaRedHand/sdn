@@ -169,27 +169,31 @@ class Firewall(EventMixin):
         pass
 
     def _handle_PacketIn(self, event):
-        log.info("Received unmatched packet")
-
         mac_to_port = self.mac_to_ports.get(event.dpid, {})
         mac_to_port[event.parsed.src] = event.port
 
         if event.parsed.dst in mac_to_port:
             port = mac_to_port[event.parsed.dst]
             if port == event.port:
+                log.info(f"{event.dpid} Received matching packet {event.parsed}; dropping")
                 actions = tuple()  # drop it!
             else:
+                log.info(f"{event.dpid} Received matching packet {event.parsed}; installing rule...")
                 actions = (of.ofp_action_output(port=port),)
             event.connection.send(
                 of.ofp_flow_mod(
                     actions=actions,
                     priority=0,
-                    match=of.ofp_match.from_packet(event.ofp),
+                    match=of.ofp_match(dl_src=event.parsed.src, dl_dst=event.parsed.dst),
                     idle_timeout=10,
                     data=event.ofp,
                 )
             )
         else:
+            # Don't print multicast messages
+            # e.g.: MAC 33-33-XX-XX-XX-XX is used for IPv6 multicast
+            if not event.parsed.dst.is_multicast:
+                log.info(f"{event.dpid} Received unmatched packet {event.parsed}")
             event.connection.send(
                 of.ofp_packet_out(
                     action=of.ofp_action_output(
