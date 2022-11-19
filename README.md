@@ -47,7 +47,7 @@ $ src/pox/pox.py forwarding.l2_learning firewall
 Lanzar Mininet con controlador remoto
 
 ```bash
-$ sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633
+$ sudo mn --custom ./src/topo.py --topo xwing --mac --switch ovsk --controller=remote,ip=127.0.0.1,port=6633
 ```
 
 Puede especificarse el número de switches de la topología luego del nombre, separado por una coma.
@@ -56,7 +56,7 @@ Por ejemplo, para 5 switches: `--topo xwing,5`
 O tambien se puede ejecutar un test (pingall) con 
 
 ```bash
-$ sudo mn --custom ./src/topo.py --topo xwing --controller=remote,ip=127.0.0.1,port=6633 --test pingall
+$ sudo mn --custom ./src/topo.py --topo xwing --mac --switch ovsk --controller=remote,ip=127.0.0.1,port=6633 --test pingall
 ```
 
 ## Configuracion de reglas
