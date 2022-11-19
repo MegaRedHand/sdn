@@ -220,6 +220,6 @@ def launch(**kwargs):
         import os
 
         global RULES_PATH
-        RULES_PATH = Path(os.getcwd()).absolute().parent / kwargs[FILE_PARAM]
+        RULES_PATH = Path(os.getcwd()).absolute() / kwargs[FILE_PARAM]
 
     core.registerNew(Firewall)
