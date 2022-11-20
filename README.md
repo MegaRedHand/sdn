@@ -41,7 +41,7 @@ $ make lint
 Comenzar lanzando el modulo firewall de Pox
 
 ```bash
-$ src/pox/pox.py forwarding.l2_learning firewall
+$ src/pox/pox.py firewall
 ```
 
 Lanzar Mininet con controlador remoto
@@ -65,7 +65,7 @@ El firewall implementado permite una rápida configuración de reglas mediante l
 Alternativamente, puede especificarse otro archivo del cual tomar las reglas a través del parámetro `--rules-file`:
 
 ```bash
-$ src/pox/pox.py forwarding.l2_learning firewall --rules-files=path/al/archivo
+$ src/pox/pox.py firewall --rules-files=path/al/archivo
 ```
 
 Las reglas disponibles son:
