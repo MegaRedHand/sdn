@@ -1,7 +1,7 @@
 # Archivo de reglas
 
 # Bloquear trafico entre dos hosts
-#BLOCK_TRAFFIC	10.0.0.3	10.0.0.2
+BLOCK_TRAFFIC	3	2
 
 # Bloquear trafico con cierto puerto de destino
 #BLOCK_PORT	80

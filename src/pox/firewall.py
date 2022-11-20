@@ -6,6 +6,7 @@ import pox.openflow.libopenflow_01 as of
 from pox.core import core
 from pox.lib.revent.revent import EventMixin
 from pox.lib.util import dpidToStr
+from pox.lib.addresses import EthAddr
 
 log = core.getLogger()
 RULES_PATH = Path(__file__).absolute().parent / "rules.txt"
@@ -82,16 +83,17 @@ class Firewall(EventMixin):
             )
         )
 
-    def block_traffic_hosts(self, connection, ip_host1, ip_host2):
-        log.info(f"Blocking data flow between {ip_host1} and {ip_host2}")
+    def block_traffic_hosts(self, connection, host1, host2):
+        mac_host1 = bytes((0, 0, 0, 0, 0, int(host1)))
+        mac_host2 = bytes((0, 0, 0, 0, 0, int(host2)))
+        log.info(f"Blocking data flow between {mac_host1} and {mac_host2}")
         connection.send(
             of.ofp_flow_mod(
                 action=(),
                 priority=1,
                 match=of.ofp_match(
-                    dl_type=pkt.ethernet.IP_TYPE,
-                    nw_src=ip_host1,
-                    nw_dst=ip_host2,
+                    dl_src=EthAddr(mac_host1),
+                    dl_dst=EthAddr(mac_host2),
                 ),
             )
         )
@@ -100,9 +102,8 @@ class Firewall(EventMixin):
                 action=(),
                 priority=1,
                 match=of.ofp_match(
-                    dl_type=pkt.ethernet.IP_TYPE,
-                    nw_src=ip_host2,
-                    nw_dst=ip_host1,
+                    dl_src=EthAddr(mac_host2),
+                    dl_dst=EthAddr(mac_host1),
                 ),
             )
         )
