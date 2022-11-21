@@ -88,3 +88,11 @@ de protocolo de transporte `protocol`, y puerto destino `port`
 ```
 BLOCK_PORT_HOST_PROTOCOL port ip_host protocol
 ```
+
+Adicionalmente, puede especificarse qué switch hará de firewall con la regla:
+
+```
+FIREWALL dpid_switch
+```
+
+Esta aplica a todas las siguientes reglas, hasta el próximo `FIREWALL`.

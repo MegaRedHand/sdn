@@ -19,7 +19,6 @@ class Firewall(EventMixin):
         self.listenTo(core.openflow)
         log.info("Enabling Firewall Module")
         self.rules = self.parse_rules()
-        self.dpid = -1
         self.mac_to_ports = {}
 
     def parse_rules(self):
@@ -29,15 +28,21 @@ class Firewall(EventMixin):
 
         log.info(f"Reading rules from {RULES_PATH}")
         rules = []
+        switch = 1
         rule_parsers = {
             "BLOCK_TRAFFIC": (2, Firewall.block_traffic_hosts),
             "BLOCK_PORT": (1, Firewall.block_port),
             "BLOCK_PORT_HOST_PROTOCOL": (3, Firewall.block_port_host_protocol),
+            "FIREWALL": (1, None),
         }
         with RULES_PATH.open("r") as f:
             for line in f:
                 rule = line.split()
                 if len(rule) < 1 or rule[0] not in rule_parsers:
+                    continue
+
+                if rule[0] == "FIREWALL":
+                    switch = int(rule[1])
                     continue
 
                 rule, argv = rule[0], rule[1:]
@@ -52,7 +57,7 @@ class Firewall(EventMixin):
 
                 log.info(f"Read rule '{rule}' from file")
 
-                rules.append((enforcer, argv[:argc]))
+                rules.append((switch, enforcer, argv[:argc]))
         return rules
 
     def block_port_host_protocol(self, connection, port, ip_host, protocol):
@@ -133,21 +138,21 @@ class Firewall(EventMixin):
             )
         )
 
-    def configure_rules(self, connection):
-        log.info(
-            f"Installing firewall table entries "
-            f"for switch {dpidToStr(self.dpid)}"
-        )
-        for enforcer, args in self.rules:
+    def configure_rules(self, dpid, connection):
+        applied = [(enf, args) for sw, enf, args in self.rules if sw == dpid]
+
+        if len(applied) > 0:
+            log.info(
+                f"Installing firewall table entries "
+                f"for switch {dpidToStr(dpid)}"
+            )
+
+        for enforcer, args in applied:
             enforcer(self, connection, *args)
 
     def _handle_ConnectionUp(self, event):
         print(f"Connection established with switch {dpidToStr(event.dpid)}")
-        # the first connected switch implements the firewall
-
-        if self.dpid == -1:
-            self.dpid = event.dpid
-            self.configure_rules(event.connection)
+        self.configure_rules(event.dpid, event.connection)
 
     def _handle_ConnectionDown(self, event):
         # log.info("Connection DOWN")

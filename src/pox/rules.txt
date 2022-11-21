@@ -1,5 +1,8 @@
 # Archivo de reglas
 
+# Especifica qué switch actuará de firewall
+FIREWALL    1
+
 # Bloquear trafico entre dos hosts
 BLOCK_TRAFFIC	3	2
 
